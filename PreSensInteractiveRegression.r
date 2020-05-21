@@ -1,6 +1,7 @@
 ### Analysis of PreSens Respiration Data
 ### Written By: Mario Muscarella
-### Last Update: 16 July 2013
+### Modified By: Emmi Mueller
+### Last Update: 22 April 2020
 
 ## This analysis uses the R package - rpanel which does interactive regression
 ## The goal is to use the interactive view to pick the area to analyze
@@ -8,7 +9,7 @@
 ## Multiple trend chart version; Annual anomaly data
 
 require("rpanel")||install.packages("rpanel")
-require("xlsx")||install.packages("xlsx")
+require("gdata")||install.packages("gdata")
 
 #options("guiToolkit"="RGtk2")     
 options(digits=6)
@@ -19,27 +20,32 @@ if("user.name" %in% ls() == FALSE){
   }
 
 ## Import Data #################################################################
+#EAM: changed file start row for all file types due to PreSens software update
+#EAM: Changed colnames order due to PreSens software update
+#EAM: Rearranged data manipulation order to account for software update and line ending changes that messed with date format
+
 infile <- file.choose(new=F)
 if (grepl(".xls", infile)){
-  data.in <- read.xlsx(infile, "Sheet4", header=T, startRow=11)
+  data.in <- read.xls(infile, "Sheet4", header=T, startRow=35)
   } else {
   if (grepl(".csv", infile)){
-    data.in <- read.csv(infile, header=T, skip=10)
+    data.in <- read.csv(infile, header=T, skip=34)
     } else {
     if (grepl(".txt", infile)){
-      data.in <- read.delim(infile, header=T, skip=10)
+      data.in <- read.delim(infile, header=T, skip=34)
       }
       else (print("File must be either Excel or flat format"))
       }}  
         
 head(data.in)
-colnames(data.in) <- c("Date", "Time", "A1", "B1", "C1", "D1", "A2", "B2", "C2",
- "D2", "A3", "B3", "C3", "D3", "A4", "B4", "C4", "D4", "A5", "B5", "C5", "D5", 
- "A6", "B6", "C6", "D6", "Temp", "Error")
-data.in$Date <- strptime(data.in[,1], format="%d.%m.%y %H:%M:%S")
-data.in[data.in == "No Sensor"] <- NA
+colnames(data.in) <- c("Date", "Time", "A1", "A2", "A3", "A4", "A5", "A6", "B1",
+ "B2", "B3", "B4", "B5", "B6", "C1", "C2", "C3", "C4", "C5", "C6", "D1", "D2", 
+ "D3", "D4", "D5", "D6", "Temp", "Error")
 data.in$Time <- data.in$Time/3600 # Convert sec to Hrs
+data.in[data.in == "No Sensor"] <- NA
 data.in[3:26] <- data.in[3:26] * 1000/32 # Convert mg O2/L to uM O2
+data.in$Date <- strptime(data.in$Date, format="%d.%m.%y %H:%M:%S")
+
 
 ## File for output
 outfile <- file.choose(new=T)
@@ -153,6 +159,7 @@ end.session <- function(panel) {
   }
                             
 ## rpanel controls - enter start and end yrs for portion of full data set to be used
+plot.new()
 rpplot <- rp.control(title="Interactive Regression", start=0, end = max(Time), initval = samples[1])
 rp.listbox(rpplot, variable = samp, vals = "Samples", labels = samples, action = draw)
 rp.slider(rpplot, start, action = draw, from = 0, to =  max(Time))
